@@ -195,7 +195,7 @@ const run = async () => {
       res.send(result);
     });
 
-    app.get("/findUserSchool", jwtVerify, userVerify, async (req, res) => {
+    app.get("/findUserProfile", jwtVerify, userVerify, async (req, res) => {
       const email = req.query.email;
       const query = { email: email };
 
@@ -203,6 +203,7 @@ const run = async () => {
       console.log(result);
       res.send(result);
     });
+
     app.put("/findUserSchool", jwtVerify, userVerify, async (req, res) => {
       const userEmail = req.query.email;
       const updateSchool = req.body;
@@ -213,6 +214,25 @@ const run = async () => {
       const updateDoc = {
         $set: {
           school: updateSchool,
+        },
+      };
+
+      const result = await usersCollection.updateOne(query, updateDoc, options);
+      console.log(result);
+      console.log(result);
+      res.send(result);
+    });
+
+    app.put("/findUserCollege", jwtVerify, userVerify, async (req, res) => {
+      const userEmail = req.query.email;
+      const updateCollege = req.body;
+
+      const query = { email: userEmail };
+
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          college: updateCollege,
         },
       };
 
