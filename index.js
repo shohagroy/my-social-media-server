@@ -89,7 +89,7 @@ const run = async () => {
     app.post("/createUser", async (req, res) => {
       const userInfo = req.body;
       const userEmail = { email: userInfo.email };
-      const jwtToken = jwt.sign(userEmail, secret, { expiresIn: "3h" });
+      const jwtToken = jwt.sign(userEmail, secret, { expiresIn: "10h" });
       const result = await usersCollection.insertOne(userInfo);
       res.send({ jwtToken });
     });
@@ -152,7 +152,6 @@ const run = async () => {
         },
       };
       const result = await postsCollection.updateOne(query, updateDoc, options);
-      console.log(result);
       res.send(result);
     });
     app.post("/addNewComment", jwtVerify, userVerify, async (req, res) => {
@@ -171,7 +170,6 @@ const run = async () => {
         },
       };
       const result = await postsCollection.updateOne(query, updateDoc, options);
-      console.log(result);
       res.send(result);
     });
 
@@ -187,11 +185,9 @@ const run = async () => {
     });
     app.get("/commentUsers", jwtVerify, userVerify, async (req, res) => {
       const authorEmail = req.query.authorEmail;
-      console.log(authorEmail);
       const query = { email: authorEmail };
 
       const result = await usersCollection.findOne(query);
-      console.log(result);
       res.send(result);
     });
 
@@ -200,7 +196,7 @@ const run = async () => {
       const query = { email: email };
 
       const result = await usersCollection.findOne(query);
-      console.log(result);
+
       res.send(result);
     });
 
@@ -218,8 +214,6 @@ const run = async () => {
       };
 
       const result = await usersCollection.updateOne(query, updateDoc, options);
-      console.log(result);
-      console.log(result);
       res.send(result);
     });
 
@@ -237,10 +231,89 @@ const run = async () => {
       };
 
       const result = await usersCollection.updateOne(query, updateDoc, options);
-      console.log(result);
+      res.send(result);
+    });
+    app.put("/findUserWork", jwtVerify, userVerify, async (req, res) => {
+      const userEmail = req.query.email;
+      const updateWork = req.body;
+
+      const query = { email: userEmail };
+
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          work: updateWork,
+        },
+      };
+
+      const result = await usersCollection.updateOne(query, updateDoc, options);
+      res.send(result);
+    });
+
+    app.put("/findUserLivien", jwtVerify, userVerify, async (req, res) => {
+      const userEmail = req.query.email;
+      const updateLiveinCity = req.body;
+
+      const query = { email: userEmail };
+
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          livein: updateLiveinCity,
+        },
+      };
+
+      const result = await usersCollection.updateOne(query, updateDoc, options);
+      res.send(result);
+    });
+
+    app.put("/findUserMobile", jwtVerify, userVerify, async (req, res) => {
+      const userEmail = req.query.email;
+      const updateMobile = req.body;
+
+      const query = { email: userEmail };
+
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          mobile: updateMobile,
+        },
+      };
+
+      const result = await usersCollection.updateOne(query, updateDoc, options);
       console.log(result);
       res.send(result);
     });
+    app.put(
+      "/findUserBirthDayGenger",
+      jwtVerify,
+      userVerify,
+      async (req, res) => {
+        const userEmail = req.query.email;
+        const updateInfo = req.body;
+        const birthday = { date: updateInfo.birthDay };
+        console.log(birthday);
+        const gender = updateInfo.gender;
+
+        const query = { email: userEmail };
+
+        const options = { upsert: true };
+        const updateDoc = {
+          $set: {
+            gender: gender,
+            birthday: birthday,
+          },
+        };
+
+        const result = await usersCollection.updateOne(
+          query,
+          updateDoc,
+          options
+        );
+        console.log(result);
+        res.send(result);
+      }
+    );
   } finally {
   }
 };
