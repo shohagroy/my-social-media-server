@@ -49,6 +49,7 @@ const run = async () => {
   try {
     const usersCollection = client.db("WeShare").collection("users");
     const postsCollection = client.db("WeShare").collection("allPosts");
+    const commentsCollection = client.db("WeShare").collection("allComments");
 
     const userVerify = async (req, res, next) => {
       const verifyEmail = req.decoded.email;
@@ -115,9 +116,17 @@ const run = async () => {
       const query = {};
       const result = await postsCollection
         .find(query)
-        .sort({ date: 1 })
+        .sort({ date: -1 })
         .toArray();
-      res.send(result);
+      if (result) {
+        const comments = await commentsCollection
+          .find(query)
+          .sort({ commentDate: 1 })
+          .toArray();
+
+        const newsFeed = { feeds: result, comments };
+        res.send(newsFeed);
+      }
     });
     app.get("/findUser", jwtVerify, userVerify, async (req, res) => {
       const userEmail = req.query.userEmail;
@@ -143,6 +152,72 @@ const run = async () => {
         },
       };
       const result = await postsCollection.updateOne(query, updateDoc, options);
+      console.log(result);
+      res.send(result);
+    });
+    app.post("/addNewComment", jwtVerify, userVerify, async (req, res) => {
+      const id = req.query.id;
+      const newComment = req.body;
+      const query = { _id: ObjectId(id) };
+
+      const post = await commentsCollection.insertOne(newComment);
+      const countComment = await postsCollection.findOne(query);
+      const correntComments = countComment.totalComments + 1;
+
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          totalComments: correntComments,
+        },
+      };
+      const result = await postsCollection.updateOne(query, updateDoc, options);
+      console.log(result);
+      res.send(result);
+    });
+
+    app.get("/allComments", jwtVerify, userVerify, async (req, res) => {
+      const id = req.query.id;
+      const query = { postId: id };
+
+      const result = await commentsCollection
+        .find(query)
+        .sort({ commentDate: -1 })
+        .toArray();
+      res.send(result);
+    });
+    app.get("/commentUsers", jwtVerify, userVerify, async (req, res) => {
+      const authorEmail = req.query.authorEmail;
+      console.log(authorEmail);
+      const query = { email: authorEmail };
+
+      const result = await usersCollection.findOne(query);
+      console.log(result);
+      res.send(result);
+    });
+
+    app.get("/findUserSchool", jwtVerify, userVerify, async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+
+      const result = await usersCollection.findOne(query);
+      console.log(result);
+      res.send(result);
+    });
+    app.put("/findUserSchool", jwtVerify, userVerify, async (req, res) => {
+      const userEmail = req.query.email;
+      const updateSchool = req.body;
+
+      const query = { email: userEmail };
+
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          school: updateSchool,
+        },
+      };
+
+      const result = await usersCollection.updateOne(query, updateDoc, options);
+      console.log(result);
       console.log(result);
       res.send(result);
     });
