@@ -281,7 +281,6 @@ const run = async () => {
       };
 
       const result = await usersCollection.updateOne(query, updateDoc, options);
-      console.log(result);
       res.send(result);
     });
     app.put(
@@ -292,7 +291,6 @@ const run = async () => {
         const userEmail = req.query.email;
         const updateInfo = req.body;
         const birthday = { date: updateInfo.birthDay };
-        console.log(birthday);
         const gender = updateInfo.gender;
 
         const query = { email: userEmail };
@@ -310,8 +308,67 @@ const run = async () => {
           updateDoc,
           options
         );
-        console.log(result);
         res.send(result);
+      }
+    );
+
+    app.put(
+      "/userCoverPhotoUpdate",
+      jwtVerify,
+      userVerify,
+      async (req, res) => {
+        const userEmail = req.query.email;
+        const coverPhotoUrl = req.body.url;
+
+        const query = { email: userEmail };
+
+        const options = { upsert: true };
+        const updateDoc = {
+          $set: {
+            coverPhoto: coverPhotoUrl,
+          },
+        };
+
+        const result = await usersCollection.updateOne(
+          query,
+          updateDoc,
+          options
+        );
+
+        if (result.modifiedCount) {
+          const userData = await usersCollection.findOne(query);
+          res.send(userData);
+        }
+      }
+    );
+
+    app.put(
+      "/userProfilePhotoUpdate",
+      jwtVerify,
+      userVerify,
+      async (req, res) => {
+        const userEmail = req.query.email;
+        const profilePictureUrl = req.body.url;
+
+        const query = { email: userEmail };
+
+        const options = { upsert: true };
+        const updateDoc = {
+          $set: {
+            photoUrl: profilePictureUrl,
+          },
+        };
+
+        const result = await usersCollection.updateOne(
+          query,
+          updateDoc,
+          options
+        );
+
+        if (result.modifiedCount) {
+          const userData = await usersCollection.findOne(query);
+          res.send(userData);
+        }
       }
     );
   } finally {
