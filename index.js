@@ -36,9 +36,7 @@ const jwtVerify = (req, res, next) => {
   });
 };
 
-// database
-// const uri = process.env.DATABASE_URI;
-const uri = "mongodb://localhost:27017";
+const uri = process.env.REACT_APP_DB_URI;
 
 const client = new MongoClient(uri, {
   useNewUrlParser: true,
