@@ -121,13 +121,37 @@ const run = async () => {
       if (result) {
         const comments = await commentsCollection
           .find(query)
-          .sort({ commentDate: 1 })
+          .sort({ commentDate: -1 })
           .toArray();
 
         const newsFeed = { feeds: result, comments };
         res.send(newsFeed);
       }
     });
+
+    app.get("/viewpostDetails", jwtVerify, userVerify, async (req, res) => {
+      const postId = req.query.id;
+      const query = { _id: ObjectId(postId) };
+      const postDetails = await postsCollection.findOne(query);
+
+      if (postDetails) {
+        const postAuthorEmail = postDetails.user;
+        const filter = { email: postAuthorEmail };
+
+        const postAuthorProfile = await usersCollection.findOne(filter);
+
+        if (postAuthorProfile) {
+          const query = { postId: postId };
+          const postComments = await commentsCollection
+            .find(query)
+            .sort({ commentDate: -1 })
+            .toArray();
+          const postData = { postDetails, postAuthorProfile, postComments };
+          res.send(postData);
+        }
+      }
+    });
+
     app.get("/findUser", jwtVerify, userVerify, async (req, res) => {
       const userEmail = req.query.userEmail;
       const query = { email: userEmail };
@@ -192,8 +216,8 @@ const run = async () => {
     });
 
     app.get("/findUserProfile", jwtVerify, userVerify, async (req, res) => {
-      const email = req.query.email;
-      const query = { email: email };
+      const id = req.query.id;
+      const query = { _id: ObjectId(id) };
 
       const result = await usersCollection.findOne(query);
 
@@ -348,14 +372,15 @@ const run = async () => {
       userVerify,
       async (req, res) => {
         const userEmail = req.query.email;
-        const profilePictureUrl = req.body.url;
+        const newPostData = req.body;
+        const photoUrl = newPostData.image;
 
         const query = { email: userEmail };
 
         const options = { upsert: true };
         const updateDoc = {
           $set: {
-            photoUrl: profilePictureUrl,
+            photoUrl: photoUrl,
           },
         };
 
@@ -366,11 +391,38 @@ const run = async () => {
         );
 
         if (result.modifiedCount) {
+          const newPost = await postsCollection.insertOne(newPostData);
           const userData = await usersCollection.findOne(query);
           res.send(userData);
         }
       }
     );
+
+    app.get("/profileTramlinefeed", jwtVerify, userVerify, async (req, res) => {
+      const userId = req.query.id;
+      const query = { _id: ObjectId(userId) };
+      const viewUser = await usersCollection.findOne(query);
+
+      if (viewUser) {
+        const filter = { user: viewUser.email };
+        const userPost = await postsCollection
+          .find(filter)
+          .sort({ date: -1 })
+          .toArray();
+
+        if (userPost) {
+          const filter = {};
+          const allComments = await commentsCollection.find(filter).toArray();
+
+          const tramlineData = {
+            viewUser,
+            posts: userPost,
+            comments: allComments,
+          };
+          res.send(tramlineData);
+        }
+      }
+    });
   } finally {
   }
 };
