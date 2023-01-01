@@ -36,7 +36,8 @@ const jwtVerify = (req, res, next) => {
   });
 };
 
-const uri = process.env.REACT_APP_DB_URI;
+// const uri = process.env.REACT_APP_DB_URI;
+const uri = "mongodb://localhost:27017";
 
 const client = new MongoClient(uri, {
   useNewUrlParser: true,
@@ -48,6 +49,9 @@ const run = async () => {
     const usersCollection = client.db("WeShare").collection("users");
     const postsCollection = client.db("WeShare").collection("allPosts");
     const commentsCollection = client.db("WeShare").collection("allComments");
+    const notificationCollections = client
+      .db("WeShare")
+      .collection("allNotifications");
 
     const userVerify = async (req, res, next) => {
       const verifyEmail = req.decoded.email;
@@ -158,24 +162,39 @@ const run = async () => {
     });
 
     app.put("/setNewReact", jwtVerify, userVerify, async (req, res) => {
+      const userEmail = req.query.email;
       const id = req.query.id;
       const updatedReact = req.body;
 
       const query = { _id: ObjectId(id) };
-
       const post = await postsCollection.findOne(query);
-      const currentReact = post.totalReact + 1;
+
+      const remainUser = post?.react?.filter(
+        (emoji) => emoji.userEmail !== userEmail
+      );
+      const allReactUser = [...remainUser, updatedReact];
 
       const options = { upsert: true };
       const updateDoc = {
         $set: {
-          totalReact: currentReact,
-          react: updatedReact,
+          react: allReactUser,
         },
       };
       const result = await postsCollection.updateOne(query, updateDoc, options);
-      res.send(result);
+
+      if (result) {
+        const massege = { ...updatedReact, receiverName: post.user };
+        const query = { postId: id };
+        const oldMassege = await notificationCollections.findOne(query);
+
+        if (oldMassege) {
+          const oldReact = await notificationCollections.deleteOne(query);
+        }
+        const result = await notificationCollections.insertOne(massege);
+        res.send(result);
+      }
     });
+
     app.post("/addNewComment", jwtVerify, userVerify, async (req, res) => {
       const id = req.query.id;
       const newComment = req.body;
@@ -216,6 +235,15 @@ const run = async () => {
     app.get("/findUserProfile", jwtVerify, userVerify, async (req, res) => {
       const id = req.query.id;
       const query = { _id: ObjectId(id) };
+
+      const result = await usersCollection.findOne(query);
+
+      res.send(result);
+    });
+
+    app.get("/viewProfile", jwtVerify, userVerify, async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
 
       const result = await usersCollection.findOne(query);
 
@@ -420,6 +448,42 @@ const run = async () => {
           res.send(tramlineData);
         }
       }
+    });
+
+    app.get("/getNotifications", jwtVerify, userVerify, async (req, res) => {
+      const userEmail = req.query.userEmail;
+      const query = { receiverName: userEmail };
+
+      const notification = await notificationCollections.find(query).toArray();
+
+      res.send(notification);
+    });
+    // ___________________________________________________________________
+    //                              Developer Section
+    // ___________________________________________________________________
+
+    const emojiCollections = client.db("WeShare").collection("emojis");
+
+    app.post("/addEmoji", jwtVerify, async (req, res) => {
+      const developerEmail = req.query.userEmail;
+      const emojiData = req.body;
+
+      if (developerEmail === "shohag@roy.com") {
+        const result = await emojiCollections.insertOne(emojiData);
+        res.send(result);
+      } else {
+        res.send({ massege: "authoraization error" });
+      }
+    });
+
+    // updated function
+    app.get("/getEmoji", jwtVerify, userVerify, async (req, res) => {
+      const query = {};
+      const result = await emojiCollections
+        .find(query)
+        .sort({ emojiSerial: 1 })
+        .toArray();
+      res.send(result);
     });
   } finally {
   }
